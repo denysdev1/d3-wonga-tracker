@@ -31,6 +31,21 @@ const legend = d3
   .shapePadding(10)
   .scale(color);
 
+const tip = d3
+  .tip()
+  .attr('class', 'tip card')
+  .html((d) => {
+    const capitalizedName = d.data.name[0].toUpperCase() + d.data.name.slice(1);
+    let content = `<div class="name">${capitalizedName}</div>`;
+
+    content += `<div class="cost">${d.data.cost}</div>`;
+    content += `<div class="delete">Click slice to delete</div>`;
+
+    return content;
+  });
+
+graph.call(tip);
+
 const update = (data) => {
   color.domain(data.map((d) => d.name));
 
@@ -82,6 +97,18 @@ const update = (data) => {
     .transition()
     .duration(750)
     .attrTween('d', arcTweenEnter);
+
+  graph
+    .selectAll('path')
+    .on('mouseover', (e, d) => {
+      tip.show(d, e.currentTarget);
+      handleMouseOver(e);
+    })
+    .on('mouseout', (e, d) => {
+      tip.hide();
+      handleMouseOut(e);
+    })
+    .on('click', handleClick);
 };
 
 let data = [];
@@ -140,3 +167,23 @@ function arcTweenUpdate(d) {
 
   return (t) => arcPath(i(t));
 }
+
+const handleMouseOver = (e) => {
+  d3.select(e.currentTarget)
+    .transition('changeSliceFill')
+    .duration(300)
+    .attr('fill', '#fff');
+};
+
+const handleMouseOut = (e) => {
+  d3.select(e.currentTarget)
+    .transition('changeSliceFill')
+    .duration(300)
+    .attr('fill', (d) => color(d.data.name));
+};
+
+const handleClick = (e, d) => {
+  const id = d.data.id;
+
+  db.collection('expenses').doc(id).delete();
+};
